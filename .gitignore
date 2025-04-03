@@ -1,0 +1,7 @@
+myenv/
+*.pyc
+__pycache__/
+.env
+New folder/
+BuildDockerfile.txt
+pipinstall.txt
