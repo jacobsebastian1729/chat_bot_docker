@@ -3,9 +3,9 @@ __pycache__/
 *$py.class
 *.so
 .git/
-.env
 venv/
 ENV/
+myenv/
 *.log
 .DS_Store
 *.md
