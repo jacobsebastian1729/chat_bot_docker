@@ -1,8 +1,14 @@
 # ---- Stage 1: Build Environment ----
-    FROM python:3.8.10-slim-buster AS builder
+    FROM python:3.8.10-slim-buster
 
     # Set working directory
-    WORKDIR /app
+    WORKDIR /chatbot_lite
+
+    COPY .env .env
+
+
+    ENV PYTHONDONTWRITEBYTECODE=1
+    ENV PYTHONUNBUFFERED=1
     
     # Copy and install dependencies
     #COPY requirements.txt .
@@ -87,20 +93,10 @@
     RUN pip install --no-cache-dir werkzeug==3.0.6
     RUN pip install --no-cache-dir yarl==1.15.2
     RUN pip install --no-cache-dir zipp==3.20.2
-    # ---- Stage 2: Production Image ----
-    #FROM python:3.8.10
     
-    # ---- Stage 2: Production Image ----
-    FROM python:3.8.10-slim-buster
+    COPY app/ app/
 
-    # Set working directory
-    WORKDIR /app
-
-    # Copy only the installed dependencies from the builder stage
-    COPY --from=builder /usr/local /usr/local
-
-    # Copy application source code from the 'app' subdirectory
-    COPY app .
+    WORKDIR /chatbot_lite/app
 
     # Expose port 5000
     EXPOSE 5000

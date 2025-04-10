@@ -9,8 +9,13 @@ from datetime import timedelta
 from pathlib import Path
 
 app = Flask(__name__)
-load_dotenv()
-app.secret_key = os.getenv('SECRET_KEY')
+#load_dotenv()
+#app.secret_key = os.getenv('SECRET_KEY')
+
+env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.env'))
+load_dotenv(dotenv_path=env_path)
+
+app.secret_key = os.getenv("SECRET_KEY")
 CORS(app)
 
 app.permanent_session_lifetime = timedelta(days=1)
