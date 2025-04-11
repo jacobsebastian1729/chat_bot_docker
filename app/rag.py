@@ -134,7 +134,11 @@ class RAGPipeline:
 # ==============================
 
 
-load_dotenv()
+env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.env'))
+load_dotenv(dotenv_path=env_path)
+
+# Now this will work:
+api_key = os.getenv("GROQ_API_KEY")
 # Initialize language model
 model_name = "llama3-70b-8192"
 llm = ChatGroq(temperature=0.7, model = model_name)
@@ -222,6 +226,8 @@ def get_rag_response(question, pipeline_instance):
 
 
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         print(f"Error processing question: {e}")
         return "Sorry, I encountered an error processing your question. Please try again."
 
