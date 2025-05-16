@@ -142,13 +142,39 @@ class Chatbox {
 
     updateChatText(chatbox) {
         const chatMessageContainer = chatbox.querySelector('.chatbox__messages');
-        chatMessageContainer.innerHTML = this.messages
-            .slice().reverse().map(item =>
-                `<div class="messages__item messages__item--${item.name === "Nova" ? 'visitor' : 'operator'}">
-                    ${item.message}
-                </div>`
-            ).join('');
+        
+        // Clear existing messages first to avoid duplication
+        chatMessageContainer.innerHTML = '';
+        
+        // Add each message in reverse order (newest at bottom)
+        this.messages.slice().reverse().forEach(item => {
+            // Create message container
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `messages__item messages__item--${item.name === "Nova" ? 'visitor' : 'operator'}`;
+            
+            // Set HTML content safely (this allows links to work)
+            messageDiv.innerHTML = item.message;
+            
+            // Append the message to the container
+            chatMessageContainer.appendChild(messageDiv);
+            
+            // Process any links in Nova's messages
+            if (item.name === "Nova") {
+                const links = messageDiv.querySelectorAll('a.chatbot-link');
+                links.forEach(link => {
+                    // Make sure link styles are applied
+                    link.classList.add('chatbot-link');
+                    
+                    // Add click event
+                    link.addEventListener('click', (e) => {
+                        console.log("Navigation link clicked:", link.href);
+                        // The default behavior will navigate to the href
+                    });
+                });
+            }
+        });
 
+        // Scroll to the bottom to show newest messages
         chatMessageContainer.scrollTop = chatMessageContainer.scrollHeight;
     }
 }
@@ -156,3 +182,21 @@ class Chatbox {
 // Initialize the chatbox
 const chatbox = new Chatbox();
 chatbox.display();
+
+// Add CSS styles for chatbot links
+document.addEventListener('DOMContentLoaded', () => {
+    const style = document.createElement('style');
+    style.textContent = `
+        .chatbot-link {
+            color: #007bff;
+            text-decoration: underline;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .chatbot-link:hover {
+            color: #0056b3;
+            text-decoration: none;
+        }
+    `;
+    document.head.appendChild(style);
+});

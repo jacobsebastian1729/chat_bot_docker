@@ -24,14 +24,86 @@ from langchain_community.vectorstores import FAISS
 #from langchain.vectorstores import FAISS
 from pathlib import Path
 
-
+# Website page navigation mapping
+# Add all pages that your website has - update with your actual URLs
+WEBSITE_PAGES = {
+    "home": "https://www.4labsinc.com/",
+    "services": "https://www.4labsinc.com/services",
+    "service": "https://www.4labsinc.com/services",  # Handle singular version
+    "about": "https://www.4labsinc.com/about-us",
+    "about us": "https://www.4labsinc.com/about-us",  # Common variation
+    "contact": "https://www.4labsinc.com/lets-connect",
+    "contact us": "https://www.4labsinc.com/lets-connect",  # Common variation  # Handle singular version
+    "connect": "https://www.4labsinc.com/lets-connect",
+    "connect you" : "https://www.4labsinc.com/lets-connect",
+    "connect with you": "https://www.4labsinc.com/lets-connect",
+    "blog": "https://www.4labsinc.com/blogs",
+    "blogs": "https://www.4labsinc.com/blogs",
+    "casestudies": "https://www.4labsinc.com/case-studies",
+    "case studies": "https://www.4labsinc.com/case-studies",
+    "case study": "https://www.4labsinc.com/case-studies",
+    "support": "https://www.4labsinc.com/support",
+    "careers": "https://www.4labsinc.com/careers",
+    "career": "https://www.4labsinc.com/careers",  # Handle singular version
+    "industry": "https://www.4labsinc.com/case-studies",
+    "industries": "https://www.4labsinc.com/case-studies",
+    "referrals": "https://www.4labsinc.com/business-referral",
+    "referral": "https://www.4labsinc.com/business-referral",
+    "models": "https://www.4labsinc.com/engagement-model",
+    "model": "https://www.4labsinc.com/engagement-model",
+    "business model": "https://www.4labsinc.com/engagement-model",
+    "business models": "https://www.4labsinc.com/engagement-model",
+    "programs": "https://www.4labsinc.com/partnership-programs",
+    "ourprograms": "https://www.4labsinc.com/partnership-programs",
+    "partnership programs": "https://www.4labsinc.com/partnership-programs"
+  # Common variation
+    # Add more pages as needed
+}
 
 # Function to generate a random string for temporary filenames
 def random_string(length=8):
     return ''.join(random.choice(string.ascii_letters) for _ in range(length))
 
-# Initialize the speech recognizer
-# Adjust for ambient noise and recognition sensitivity
+# Navigation intent detection function
+def detect_navigation_intent(user_message):
+    """
+    Detect if the user wants to navigate to a specific page.
+    Returns the page name if detected, None otherwise.
+    """
+    user_msg = user_message.lower()
+    
+    # Navigation phrases to detect
+    nav_phrases = [
+        "take me to", "go to", "navigate to", "visit", "show me", 
+        "open the", "open", "direct me to", "bring me to",
+        "can you take me to", "i want to see", "i need to go to",
+        "show the", "access the", "send me to", "get me to",
+        "lead me to", "can i see", "would like to see"
+    ]
+    
+    # Check if any navigation phrase is present
+    for phrase in nav_phrases:
+        if phrase in user_msg:
+            # Find which page they want to navigate to
+            for page in WEBSITE_PAGES.keys():
+                if page in user_msg or f"{page} page" in user_msg:
+                    # If page is found, canonicalize it to handle variations
+                    # For example, map "service" to "services" by URL
+                    canonical_url = WEBSITE_PAGES[page]
+                    # Find the primary key that uses this URL (usually the plural/standard form)
+                    for primary_key, url in WEBSITE_PAGES.items():
+                        if url == canonical_url:
+                            # Return the first match as the canonical page name
+                            return primary_key
+                    # Fallback to the matched page name
+                    return page
+    
+    # Check for direct mentions of pages without navigation phrases
+    for page in WEBSITE_PAGES.keys():
+        if user_msg == page or user_msg == f"{page} page":
+            return page
+    
+    return None
 
 
 # Text Splitter Configuration
@@ -146,11 +218,19 @@ llm = ChatGroq(temperature=0.7, model = model_name)
 
 # Prompt Template
 template = """
-You are a helpful assistant. Maintain awareness of user details from chat history (e.g., their name or role). 
-Answer the question based **only** on the provided context and chat history. 
+You are Nova, the AI assistant for 4Labs Technologies. Your job is to help visitors by answering questions about the company, its leadership, services, or navigation—just like a knowledgeable and professional team member.
 
-If the context doesn’t cover the question, respond with "The context doesn’t provide that information."
+Rules:
 
+    Use only the information provided in the context.
+
+    Do not refer to the "context" or "provided information" in your replies. Just respond naturally and confidently.
+
+    If specific information is missing, say:
+
+        "I appreciate your interest. While I don’t have that specific information at the moment."
+
+    Use a helpful, polished, and human tone. Avoid sounding robotic or overly generic.
 Chat History (keep this in mind):  
 {chat_history}
 
@@ -161,6 +241,7 @@ Question: {question}
 
 Answer:
 """
+
 
 
 prompt = ChatPromptTemplate.from_template(template)
@@ -209,7 +290,89 @@ def get_rag_response(question, pipeline_instance):
                 print(chat)
 
             session.pop('chat_history', None)  # Clear the session history
-            return "It’s been a pleasure chatting with you. Take care! 👋"
+            return "It's been a pleasure chatting with you. Take care! 👋"
+            
+        # Check for navigation intent
+        navigation_page = detect_navigation_intent(question)
+        if navigation_page:
+            # Get the canonical URL for this page
+            page_url = WEBSITE_PAGES.get(navigation_page)
+            if page_url:
+                # Make the display name more user-friendly
+                display_name = navigation_page.replace("_", " ").title()
+        
+                # Handle special cases for cleaner display
+
+                #if navigation_page == "home":
+                #    display_name = "Home"
+                #elif navigation_page in ["services", "service"]:
+                #    display_name = "Services"
+                #elif navigation_page in ["about", "about us"]:
+                #    display_name = "About Us"
+                #elif navigation_page in ["contact", "contact us"]:
+                #    display_name = "Contact Us"
+                if navigation_page.lower() == "home":
+                    display_name = "Home"
+                elif navigation_page.lower() in ["services", "service"]:
+                    display_name = "Services"
+                elif navigation_page.lower() in ["about", "about us"]:
+                    display_name = "About Us"
+                elif navigation_page.lower() in ["contact", "contact us", "connect", "connect with you", "connect you"]:
+                    display_name = "Contact Us"
+                elif navigation_page.lower() in ["blog", "blogs"]:
+                    display_name = "Blog"
+                elif navigation_page.lower() in ["case studies", "casestudies", "case study"]:
+                    display_name = "Case Studies"
+                elif navigation_page.lower() in ["referral", "referrals"]:
+                    display_name = "Business Referral"
+                elif navigation_page.lower() in ["models", "model", "business model", "business models"]:
+                    display_name = "Engagement Model"
+                elif navigation_page.lower() in ["programs", "ourprograms", "partnership programs"]:
+                    display_name = "Partnership Programs"
+        
+                # Return a response with a clickable link (HTML format)
+                response = f"Sure! You can <a href='{page_url}' class='chatbot-link'>click here</a> to visit the {display_name} page."
+        
+                # Add to chat history
+                session['chat_history'].append(f"User: {question}")
+                session['chat_history'].append(f"Nova: {response}")
+        
+                return response
+            else:
+                # Page not found in mapping – handle professionally
+                polite_response = (
+                    "I couldn't find a page that matches your request. "
+                    "Please double-check the page name or let me know what you're looking for, and I’ll do my best to help!"
+                )
+                session['chat_history'].append(f"User: {question}")
+                session['chat_history'].append(f"Nova: {polite_response}")
+                return polite_response
+#        navigation_page = detect_navigation_intent(question)
+#        if navigation_page:
+            # Get the canonical URL for this page
+#            page_url = WEBSITE_PAGES.get(navigation_page)
+#            if page_url:
+                # Make the display name more user-friendly
+#                display_name = navigation_page.replace("_", " ").title()
+                
+                # Handle special cases for cleaner display
+#                if navigation_page == "home":
+#                    display_name = "Home"
+#                elif navigation_page in ["services", "service"]:
+#                    display_name = "Services"
+#                elif navigation_page in ["about", "about us"]:
+#                    display_name = "About Us"
+#                elif navigation_page in ["contact", "contact us"]:
+#                    display_name = "Contact Us"
+                
+                # Return a response with a clickable link (HTML format)
+#                response = f"Sure! You can <a href='{page_url}' class='chatbot-link'>click here</a> to visit the {display_name} page."
+                
+                # Add to chat history
+#                session['chat_history'].append(f"User: {question}")
+#                session['chat_history'].append(f"Nova: {response}")
+#                
+#                return response
 
         # Pass question, context, and chat history to RAG chain
         if pipeline_instance: #check if pipeline_instance exists.
@@ -230,30 +393,3 @@ def get_rag_response(question, pipeline_instance):
         traceback.print_exc()
         print(f"Error processing question: {e}")
         return "Sorry, I encountered an error processing your question. Please try again."
-
-
-
-if __name__ == "__main__":
-    # Define the file path to your document
-    file_path = r"C:\Users\JACOB\Desktop\New folder (2)\chat_bot\docs\rag_doc.docx"
-    
-    # Instantiate the pipeline (this runs everything up to the retriever)
-    pipeline = RAGPipeline(file_path)
-
-    # Check if everything was created successfully
-    if pipeline.vector_store and pipeline.retriever:
-        print("✅ Vector store and retriever are ready to use!")
-
-        # Example query to test the pipeline
-        query = "What event caused the people of Eldoria to disappear?"
-        print(pipeline.retriever.invoke(query))
-        #results = pipeline.run_query(query)
-
-        # Display results nicely
-        '''print("\n🔍 Query Results:")
-        for i, result in enumerate(results):
-            print(f"📌 Result {i+1}:\n{result.page_content}\n")
-        '''
-    else:
-        print("❌ Failed to initialize pipeline components. Check document or model setup.")
-

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify#, session
+from flask import Flask, render_template, request, jsonify, session
 from rag import get_rag_response, RAGPipeline
 from flask_cors import CORS
 import os
@@ -32,6 +32,26 @@ app.config['pipeline_instance'] = pipeline_instance
 def index_get():
     return render_template("base.html")
 
+# Add routes for all website pages that the chatbot might direct users to
+@app.route('/services')
+def services():
+    # You would normally render your services page template here
+    return render_template("services.html")
+
+@app.route('/about')
+def about():
+    return render_template("about.html")
+
+@app.route('/contact')
+def contact():
+    return render_template("contact.html")
+
+@app.route('/products')
+def products():
+    return render_template("products.html")
+
+# Add more routes as needed for all pages in the WEBSITE_PAGES dictionary in rag.py
+
 @app.route('/predict', methods=['POST'])
 def predict():
     """Handles incoming user messages and returns chatbot responses."""
@@ -47,8 +67,6 @@ def predict():
     return jsonify({"answer": bot_response}) 
 
 #app.config['pipeline_instance'] = None
-
-
 
 if __name__ == "__main__":
     app.run(debug=True, host='0.0.0.0')
